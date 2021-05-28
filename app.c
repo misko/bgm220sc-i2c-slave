@@ -1,92 +1,21 @@
-/***************************************************************************//**
- * @file
- * @brief Top level application functions
- *******************************************************************************
- * # License
- * <b>Copyright 2020 Silicon Laboratories Inc. www.silabs.com</b>
- *******************************************************************************
- *
- * The licensor of this software is Silicon Laboratories Inc. Your use of this
- * software is governed by the terms of Silicon Labs Master Software License
- * Agreement (MSLA) available at
- * www.silabs.com/about-us/legal/master-software-license-agreement. This
- * software is distributed to you in Source Code format and is governed by the
- * sections of the MSLA applicable to Source Code.
- *
- ******************************************************************************/
-/*****************************************************************************
- * @file i2c_master_slave.c
- * @brief I2C Demo Application
- * @author Silicon Labs
- * @version 1.06
- ******************************************************************************
- * @section License
- * <b>(C) Copyright 2014 Silicon Labs, http://www.silabs.com</b>
- *******************************************************************************
- *
- * Permission is granted to anyone to use this software for any purpose,
- * including commercial applications, and to alter it and redistribute it
- * freely, subject to the following restrictions:
- *
- * 1. The origin of this software must not be misrepresented; you must not
- *    claim that you wrote the original software.
- * 2. Altered source versions must be plainly marked as such, and must not be
- *    misrepresented as being the original software.
- * 3. This notice may not be removed or altered from any source distribution.
- *
- * DISCLAIMER OF WARRANTY/LIMITATION OF REMEDIES: Silicon Labs has no
- * obligation to support this Software. Silicon Labs is providing the
- * Software "AS IS", with no express or implied warranties of any kind,
- * including, but not limited to, any implied warranties of merchantability
- * or fitness for any particular purpose or warranties against infringement
- * of any proprietary rights of a third party.
- *
- * Silicon Labs will not be liable for any consequential, incidental, or
- * special damages, or any other relief, or for any claim by any third party,
- * arising from your use of this Software.
- *
- ******************************************************************************/
+/*
+ * I cannot hold it
+ * I cannot control it
+ * I'm a (I2C) slave 4 U
+ * I won't deny it
+ * I'm not trying to hide it
+ *      - Britney Spears
+ */
 
 #include <stdbool.h>
+#include <stddef.h>
 #include "em_device.h"
 #include "em_chip.h"
 #include "em_i2c.h"
-#include "em_rtc.h"
 #include "em_cmu.h"
 #include "em_emu.h"
-
-#include "em_gpio.h"
-
-#include <stddef.h>
-#include "em_cmu.h"
-#include "em_gpio.h"
 #include "em_assert.h"
-#include "em_rtc.h"
-#include "em_rtcc.h"
-//#include "rtcdriver.h"
-//#include "sl_i2cspm.h"
-//#include "sl_udelay.h"
-
-#define T_SLAVE 3
-#define T_MASTER 4
-#define T_TYPE 3
-
-/***************************************************************************//**
- * Initialize application.
- ******************************************************************************/
-void app_init(void) {
-	printf("SETUP i2c\r\n\n");
-	i2c_main();
-
-	printf("DONE i2c\r\n\n");
-}
-
-/***************************************************************************//**
- * App ticking function.
- ******************************************************************************/
-void app_process_action(void) {
-	//printf("WTF\r\n\n");
-}
+#include "em_device.h"
 
 // Defines
 #define I2C_ADDRESS                     0x30 //E2
@@ -100,25 +29,32 @@ uint8_t i2c_BufferIndex;
 volatile bool i2c_gotTargetAddress;
 volatile bool i2c_rxInProgress;
 
-extern void disableClocks(void);
+void initI2C(void);
 
-/**************************************************************************//**
- * @brief  Starting oscillators and enabling clocks
- *****************************************************************************/
-void initCMU(void) {
-	// Enabling clock to the I2C and GPIO
+/***************************************************************************//**
+ * Initialize application.
+ ******************************************************************************/
+void app_init(void) {
+
 	CMU_ClockEnable(cmuClock_I2C1, true);
-	CMU_ClockEnable(cmuClock_GPIO, true);
+	// Setting up i2c
+	initI2C();
 }
 
-/**************************************************************************//**
- * @brief GPIO initialization
- *****************************************************************************/
-void initGPIO(void) {
-	// Configure LED0 and LED1 as output
-	//GPIO_PinModeSet(BSP_GPIO_LED0_PORT, BSP_GPIO_LED0_PIN, gpioModePushPull, 0);
-	GPIO_PinModeSet(gpioPortA, 6, gpioModePushPull, 0);
+/***************************************************************************//**
+ * App ticking function.
+ ******************************************************************************/
+void app_process_action(void) {
+
+	/*while (1) {
+		// Receiving I2C data; keep in EM1 during transmission
+		while (i2c_rxInProgress) {
+			//EMU_EnterEM1();
+		}
+	}*/
 }
+
+
 
 /**************************************************************************//**
  * @brief  Setup I2C
@@ -173,7 +109,7 @@ void I2C1_IRQHandler(void) {
 	uint32_t rxData;
 
 	pending = I2C1->IF;
-	printf("FLAGS %x\r\n\n", pending);
+	//printf("FLAGS %x\r\n\n", pending);
 	/* If some sort of fault, abort transfer. */
 	if (pending & (I2C_IF_BUSERR | I2C_IF_ARBLOST)) {
 		i2c_rxInProgress = false;
@@ -183,9 +119,9 @@ void I2C1_IRQHandler(void) {
 			// Address Match
 			// Indicating that reception is started
 			rxData = I2C1->RXDATA;
-			printf("<ADDY+RXDATA:%x\r\n\n", rxData);
+			//printf("<ADDY+RXDATA:%x\r\n\n", rxData);
 			I2C1->CMD = I2C_CMD_ACK;
-			printf(">ACK\r\n\n");
+			//printf(">ACK\r\n\n");
 			i2c_rxInProgress = true;
 
 			if (rxData & 0x1) // read bit set
@@ -197,7 +133,7 @@ void I2C1_IRQHandler(void) {
 					// invalid buffer index; transfer data as if slave non-responsive
 					I2C1->TXDATA = 0xFF;
 				}
-				printf(">TX %x\r\n\n",I2C1->TXDATA);
+				//printf(">TX %x\r\n\n",I2C1->TXDATA);
 			} else {
 				i2c_gotTargetAddress = false;
 			}
@@ -208,7 +144,7 @@ void I2C1_IRQHandler(void) {
 		} else if (pending & I2C_IF_RXDATAV) {
 			rxData = I2C1->RXDATA;
 
-			printf("<RXDATA:%x\r\n\n", rxData);
+			//printf("<RXDATA:%x\r\n\n", rxData);
 			if (!i2c_gotTargetAddress) {
 				/******************************************************/
 				/* Read target address from master.                   */
@@ -218,11 +154,11 @@ void I2C1_IRQHandler(void) {
 					// store target address
 					i2c_BufferIndex = rxData;
 					I2C1->CMD = I2C_CMD_ACK;
-					printf(">ACK\r\n\n");
+					//printf(">ACK\r\n\n");
 					i2c_gotTargetAddress = true;
 				} else {
 					I2C1->CMD = I2C_CMD_NACK;
-					printf(">NACK\r\n\n");
+					//printf(">NACK\r\n\n");
 				}
 			} else {
 				/******************************************************/
@@ -233,10 +169,10 @@ void I2C1_IRQHandler(void) {
 					// write new data to target address; auto increment target address
 					i2c_Buffer[i2c_BufferIndex++] = rxData;
 					I2C1->CMD = I2C_CMD_ACK;
-					printf(">ACK\r\n\n");
+					//printf(">ACK\r\n\n");
 				} else {
 					I2C1->CMD = I2C_CMD_NACK;
-					printf(">NACK\r\n\n");
+					//printf(">NACK\r\n\n");
 				}
 			}
 
@@ -254,7 +190,7 @@ void I2C1_IRQHandler(void) {
 				// invalid buffer index; transfer data as if slave non-responsive
 				I2C1->TXDATA = 0xFF;
 			}
-			printf(">TX %x\r\n\n",I2C1->TXDATA);
+			//printf(">TX %x\r\n\n",I2C1->TXDATA);
 
 			I2C_IntClear(I2C1, I2C_IF_ACK);
 		}
@@ -268,119 +204,8 @@ void I2C1_IRQHandler(void) {
 	}
 }
 
-/***************************************************************************//**
- * @brief
- *   Enter EM2 with RTCC running on a low frequency oscillator.
- *
- * @param[in] osc
- *   Oscillator to run RTCC from (LFXO or LFRCO).
- * @param[in] powerdownRam
- *   Power down all RAM except the first 16 kB block or retain full RAM.
- *
- * @details
- *   Parameter:
- *     EM2. Deep Sleep Mode.@n
- *   Condition:
- *     RTCC, 32.768 kHz LFXO or LFRCO.@n
- *
- * @note
- *   To better understand disabling clocks and oscillators for specific modes,
- *   see Reference Manual section EMU-Energy Management Unit and Table 9.2.
- ******************************************************************************/
-void em_EM2_RTCC(CMU_Select_TypeDef osc, bool powerdownRam) {
-	// Make sure clocks are disabled.
-	disableClocks();
 
-	// Route desired oscillator to RTCC clock tree.
-	CMU_ClockSelectSet(cmuClock_RTCCCLK, osc);
 
-	// Setup RTC parameters
-	RTCC_Init_TypeDef rtccInit = RTCC_INIT_DEFAULT;
-	rtccInit.presc = rtccCntPresc_1;
 
-	// Initialize RTCC
-	CMU_ClockEnable(cmuClock_RTCC, true);
-	RTCC_Reset();
-	RTCC_Init(&rtccInit);
 
-	// Power down all RAM blocks except block 0
-	//if (powerdownRam) {
-	//EMU_RamPowerDown(SRAM_BASE, 0);
-	//}
 
-	// Enter EM2.
-	EMU_EnterEM2(true);
-}
-
-/**************************************************************************//**
- * @brief  Main function
- *****************************************************************************/
-int i2c_main(void) {
-	// Chip errata
-	CHIP_Init();
-
-	// Initializations
-	initCMU();
-	initGPIO();
-
-	// Setting up i2c
-	initI2C();
-
-	while (1) {
-		// Receiving I2C data; keep in EM1 during transmission
-		while (i2c_rxInProgress) {
-			EMU_EnterEM1();
-		}
-
-		// EM2 entry is a critical section and interrupts are disabled to prevent
-		// race conditions
-		//CORE_DECLARE_IRQ_STATE;
-		//CORE_ENTER_CRITICAL();
-		//GPIO_PinOutClear(gpioPortA, 6);
-
-		// Enter EM2. The I2C address match will wake up the EFM32
-		// EM2 with RTCC running off LFRCO is a documented current mode in the DS
-		//em_EM2_RTCC(cmuSelect_LFRCO, false);
-		//CORE_EXIT_CRITICAL();
-	}
-}
-
-#include "em_device.h"
-#include "em_cmu.h"
-
-/***************************************************************************//**
- * @brief   Disable high frequency clocks
- ******************************************************************************/
-static void disableHFClocks(void) {
-	// Disable high frequency peripherals
-	CMU_ClockEnable(cmuClock_TIMER0, false);
-	CMU_ClockEnable(cmuClock_TIMER1, false);
-	CMU_ClockEnable(cmuClock_TIMER2, false);
-	CMU_ClockEnable(cmuClock_TIMER3, false);
-	CMU_ClockEnable(cmuClock_TIMER4, false);
-	CMU_ClockEnable(cmuClock_PDM, false);
-	CMU_ClockEnable(cmuClock_EUART0, false);
-	CMU_ClockEnable(cmuClock_IADC0, false);
-}
-
-/***************************************************************************//**
- * @brief   Disable low frequency clocks
- ******************************************************************************/
-static void disableLFClocks(void) {
-	// Disable low frequency peripherals
-	CMU_ClockEnable(cmuClock_LETIMER0, false);
-	CMU_ClockEnable(cmuClock_WDOG0, false);
-	CMU_ClockEnable(cmuClock_RTCC, false);
-	CMU_ClockEnable(cmuClock_BURTC, false);
-}
-
-/***************************************************************************//**
- * @brief   Disable all clocks to achieve lowest current consumption numbers.
- ******************************************************************************/
-extern void disableClocks(void) {
-	// Disable High Frequency Clocks
-	//disableHFClocks();
-
-	// Disable Low Frequency Clocks
-	//disableLFClocks();
-}
