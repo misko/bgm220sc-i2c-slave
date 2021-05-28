@@ -1,0 +1,31 @@
+# Silicon Labs Project Configuration Tools: slcp, v0, Component selection file.
+include:
+- path: ''
+  file_list:
+  - {path: app.h}
+component:
+- {id: emlib_i2c}
+- {id: BGM220SC22WGA}
+- {id: printf}
+- {id: emlib_burtc}
+- {id: sl_system}
+- {id: device_init}
+- {id: iostream_swo}
+- {id: app_assert}
+- {id: emlib_rtcc}
+- {id: rtcdrv}
+package: platform
+define:
+- {name: DEBUG_EFM}
+description: |
+  This example project shows an empty configuration that can be used as a starting point to add components and functionality.
+label: empty
+source:
+- {path: app.c}
+- {path: main.c}
+project_name: empty
+category: Example|Platform
+toolchain_settings: []
+ui_hints: {}
+quality: production
+
